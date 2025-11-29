@@ -18,3 +18,4 @@ WHERE phone IS NOT NULL;
 -- Comment ekle
 COMMENT ON COLUMN profiles.phone IS 'Telefon numarası (E.164 formatında: +905551234567)';
 
+

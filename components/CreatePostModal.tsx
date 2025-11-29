@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Modal, TextInput, TouchableOpacity, ScrollView, Image, Alert, Platform } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { X, Image as ImageIcon, Video, MapPin, Send } from 'lucide-react-native';
@@ -11,19 +11,50 @@ interface CreatePostModalProps {
   onClose: () => void;
   onPostCreated: () => void;
   userId: string;
+  editPost?: {
+    id: string;
+    content: string;
+    location?: string;
+    media_urls: string[];
+  } | null;
 }
 
 interface MediaFile {
   uri: string;
   type: 'image' | 'video';
+  isExisting?: boolean; // Mevcut medya mı yoksa yeni mi
 }
 
-export default function CreatePostModal({ visible, onClose, onPostCreated, userId }: CreatePostModalProps) {
+export default function CreatePostModal({ visible, onClose, onPostCreated, userId, editPost = null }: CreatePostModalProps) {
   const [content, setContent] = useState('');
   const [location, setLocation] = useState('');
   const [mediaFiles, setMediaFiles] = useState<MediaFile[]>([]);
   const [posting, setPosting] = useState(false);
   const [showLocationInput, setShowLocationInput] = useState(false);
+
+  // Edit modunda formu doldur
+  useEffect(() => {
+    if (editPost && visible) {
+      setContent(editPost.content || '');
+      setLocation(editPost.location || '');
+      // Mevcut medyaları yükle
+      const existingMedia: MediaFile[] = (editPost.media_urls || []).map(url => ({
+        uri: url,
+        type: url.includes('video') ? 'video' : 'image',
+        isExisting: true
+      }));
+      setMediaFiles(existingMedia);
+      if (editPost.location) {
+        setShowLocationInput(true);
+      }
+    } else if (!editPost && visible) {
+      // Yeni post için formu temizle
+      setContent('');
+      setLocation('');
+      setMediaFiles([]);
+      setShowLocationInput(false);
+    }
+  }, [editPost, visible]);
 
   const requestPermissions = async () => {
     if (Platform.OS !== 'web') {
@@ -138,21 +169,46 @@ export default function CreatePostModal({ visible, onClose, onPostCreated, userI
     try {
       const mediaUrls: string[] = [];
 
+      // Medya dosyalarını işle
       for (const media of mediaFiles) {
-        const result = await uploadMedia(media.uri, userId, media.type);
-        mediaUrls.push(result.url);
+        if (media.isExisting) {
+          // Mevcut medya, URL'yi direkt kullan
+          mediaUrls.push(media.uri);
+        } else {
+          // Yeni medya, yükle
+          const result = await uploadMedia(media.uri, userId, media.type);
+          mediaUrls.push(result.url);
+        }
       }
 
-      const { error } = await supabase
-        .from('posts')
-        .insert({
-          user_id: userId,
-          content: content.trim(),
-          media_urls: mediaUrls,
-          location: location.trim() || null,
-        });
+      if (editPost) {
+        // Güncelleme
+        const { error } = await supabase
+          .from('posts')
+          .update({
+            content: content.trim(),
+            media_urls: mediaUrls,
+            location: location.trim() || null,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', editPost.id)
+          .eq('user_id', userId);
 
-      if (error) throw error;
+        if (error) throw error;
+        Alert.alert('Başarılı', 'Gönderi başarıyla güncellendi!');
+      } else {
+        // Yeni oluşturma
+        const { error } = await supabase
+          .from('posts')
+          .insert({
+            user_id: userId,
+            content: content.trim(),
+            media_urls: mediaUrls,
+            location: location.trim() || null,
+          });
+
+        if (error) throw error;
+      }
 
       setContent('');
       setLocation('');
@@ -161,8 +217,8 @@ export default function CreatePostModal({ visible, onClose, onPostCreated, userI
       onPostCreated();
       onClose();
     } catch (error) {
-      console.error('Error creating post:', error);
-      Alert.alert('Hata', 'Gönderi oluşturulurken bir hata oluştu');
+      console.error('Error saving post:', error);
+      Alert.alert('Hata', editPost ? 'Gönderi güncellenirken bir hata oluştu' : 'Gönderi oluşturulurken bir hata oluştu');
     } finally {
       setPosting(false);
     }
@@ -178,7 +234,7 @@ export default function CreatePostModal({ visible, onClose, onPostCreated, userI
       <View style={styles.overlay}>
         <View style={styles.container}>
           <View style={styles.header}>
-            <Text style={styles.title}>Yeni Gönderi</Text>
+            <Text style={styles.title}>{editPost ? 'Gönderiyi Düzenle' : 'Yeni Gönderi'}</Text>
             <TouchableOpacity onPress={onClose} disabled={posting}>
               <X color={colors.neutral[400]} size={24} />
             </TouchableOpacity>
@@ -270,7 +326,9 @@ export default function CreatePostModal({ visible, onClose, onPostCreated, userI
             >
               <Send color={colors.neutral[0]} size={20} />
               <Text style={styles.postButtonText}>
-                {posting ? 'Gönderiliyor...' : 'Paylaş'}
+                {posting 
+                  ? (editPost ? 'Güncelleniyor...' : 'Gönderiliyor...') 
+                  : (editPost ? 'Güncelle' : 'Paylaş')}
               </Text>
             </TouchableOpacity>
           </View>

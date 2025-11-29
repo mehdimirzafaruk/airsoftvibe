@@ -36,6 +36,104 @@ export default function LoginScreen() {
   const [showResendButton, setShowResendButton] = useState(false);
   const [resendingEmail, setResendingEmail] = useState(false);
 
+  // Telefon numarası formatlama fonksiyonu
+  const formatPhoneNumber = (input: string): string => {
+    if (!input) return '';
+    
+    // Sadece rakamları ve + işaretini al
+    let cleaned = input.replace(/[^\d+]/g, '');
+    
+    // Eğer boşsa +90 döndür
+    if (!cleaned || cleaned === '+') {
+      return '+90';
+    }
+    
+    // Eğer + ile başlamıyorsa ve 0 ile başlıyorsa, 0'ı kaldır
+    if (!cleaned.startsWith('+') && cleaned.startsWith('0')) {
+      cleaned = cleaned.substring(1);
+    }
+    
+    // Eğer +90 ile başlamıyorsa
+    if (!cleaned.startsWith('+90')) {
+      // +90 ekle
+      if (cleaned.startsWith('+')) {
+        // Eğer + ile başlıyorsa ama +90 değilse, +90'a çevir
+        cleaned = '+90' + cleaned.substring(1);
+      } else if (cleaned.startsWith('90')) {
+        // 90 ile başlıyorsa + ekle
+        cleaned = '+' + cleaned;
+      } else {
+        // Diğer durumlarda +90 ekle
+        cleaned = '+90' + cleaned;
+      }
+    }
+    
+    // Görsel formatlama: +90 5xx xxx xx xx
+    // Önce +90 kısmını al
+    if (cleaned.startsWith('+90')) {
+      const numberPart = cleaned.substring(3).replace(/\D/g, ''); // Sadece rakamları al
+      
+      // Maksimum 10 rakam (5xx xxx xx xx)
+      const limitedNumber = numberPart.slice(0, 10);
+      
+      // Formatlama: +90 5xx xxx xx xx
+      if (limitedNumber.length === 0) {
+        return '+90';
+      } else if (limitedNumber.length <= 3) {
+        return `+90 ${limitedNumber}`;
+      } else if (limitedNumber.length <= 6) {
+        return `+90 ${limitedNumber.slice(0, 3)} ${limitedNumber.slice(3)}`;
+      } else if (limitedNumber.length <= 8) {
+        return `+90 ${limitedNumber.slice(0, 3)} ${limitedNumber.slice(3, 6)} ${limitedNumber.slice(6)}`;
+      } else {
+        return `+90 ${limitedNumber.slice(0, 3)} ${limitedNumber.slice(3, 6)} ${limitedNumber.slice(6, 8)} ${limitedNumber.slice(8)}`;
+      }
+    }
+    
+    return cleaned;
+  };
+
+  // Telefon numarasını temizle (formatlamayı kaldır, sadece +905xxxxxxxxx formatında)
+  const cleanPhoneNumber = (formatted: string): string => {
+    if (!formatted || !formatted.trim()) {
+      return '';
+    }
+    
+    // Boşlukları ve özel karakterleri kaldır, sadece rakamları ve + işaretini al
+    let cleaned = formatted.replace(/[^\d+]/g, '');
+    
+    // Eğer boşsa +90 döndür
+    if (!cleaned || cleaned === '+') {
+      return '+90';
+    }
+    
+    // Eğer +90 ile başlamıyorsa düzelt
+    if (!cleaned.startsWith('+90')) {
+      if (cleaned.startsWith('0')) {
+        // 0 ile başlıyorsa 0'ı kaldır ve +90 ekle
+        cleaned = '+90' + cleaned.substring(1);
+      } else if (cleaned.startsWith('90')) {
+        // 90 ile başlıyorsa + ekle
+        cleaned = '+' + cleaned;
+      } else if (cleaned.startsWith('+')) {
+        // + ile başlıyor ama +90 değil, +90'a çevir
+        cleaned = '+90' + cleaned.substring(1);
+      } else {
+        // Diğer durumlarda +90 ekle
+        cleaned = '+90' + cleaned;
+      }
+    }
+    
+    // +90'dan sonraki kısmı al (sadece rakamlar)
+    const numberPart = cleaned.substring(3).replace(/\D/g, '');
+    
+    // Maksimum 10 rakam (Türkiye telefon numarası standardı)
+    const limitedNumber = numberPart.slice(0, 10);
+    
+    // +90 + 10 rakam = 13 karakter
+    return '+90' + limitedNumber;
+  };
+
   const handleAuth = async () => {
     // Hata mesajlarını temizle
     setEmailError('');
@@ -144,11 +242,23 @@ export default function LoginScreen() {
       setPhoneError('Telefon numarası gereklidir');
       hasError = true;
     } else {
-      const phoneRegex = /^(\+?90|0)?\s?[5][0-9]{2}\s?[0-9]{3}\s?[0-9]{2}\s?[0-9]{2}$/;
-      const cleanPhone = phone.trim().replace(/\s/g, '');
-      if (!phoneRegex.test(cleanPhone) && !cleanPhone.startsWith('+90')) {
-        setPhoneError('Geçerli bir telefon numarası girin (örn: +905551234567 veya 05551234567)');
+      const cleanPhone = cleanPhoneNumber(phone);
+      console.log('Telefon validasyonu - Input:', phone, 'Temizlenmiş:', cleanPhone, 'Uzunluk:', cleanPhone.length);
+      
+      // Türkiye telefon numarası validasyonu: +90 ile başlamalı ve 13 karakter olmalı (+90 + 10 rakam)
+      // Telefon numarası 5 ile başlamalı ve toplam 10 rakam olmalı
+      if (cleanPhone.length < 13) {
+        setPhoneError(`Telefon numarası eksik. ${13 - cleanPhone.length} rakam daha gerekli. (Örn: +90 552 796 47 29)`);
         hasError = true;
+      } else if (cleanPhone.length > 13) {
+        setPhoneError('Telefon numarası çok uzun. 10 haneli telefon numarası giriniz.');
+        hasError = true;
+      } else {
+        const phoneRegex = /^\+90[5][0-9]{9}$/;
+        if (!phoneRegex.test(cleanPhone)) {
+          setPhoneError('Geçerli bir telefon numarası girin. Türkiye telefon numarası 5 ile başlamalı (Örn: +90 552 796 47 29)');
+          hasError = true;
+        }
       }
     }
 
@@ -169,7 +279,9 @@ export default function LoginScreen() {
 
     setLoading(true);
     try {
-      await sendPhoneOTP(phone, isSignUp ? username : undefined, isSignUp ? fullName : undefined);
+      // Telefon numarasını temizle (formatlamayı kaldır)
+      const cleanPhone = cleanPhoneNumber(phone);
+      await sendPhoneOTP(cleanPhone, isSignUp ? username : undefined, isSignUp ? fullName : undefined);
       setOtpSent(true);
       setGeneralError('');
       Alert.alert('Başarılı', 'Doğrulama kodu telefon numaranıza gönderildi.');
@@ -193,7 +305,9 @@ export default function LoginScreen() {
 
     setLoading(true);
     try {
-      await verifyPhoneOTP(phone, otp);
+      // Telefon numarasını temizle (formatlamayı kaldır)
+      const cleanPhone = cleanPhoneNumber(phone);
+      await verifyPhoneOTP(cleanPhone, otp);
       // Başarılı doğrulama sonrası ana sayfaya yönlendir
       router.replace('/(tabs)');
     } catch (error: any) {
@@ -318,14 +432,16 @@ export default function LoginScreen() {
             <>
               {/* Telefon ile giriş/kayıt */}
               <TextInput
-                placeholder="Telefon Numarası (örn: +905551234567 veya 05551234567)"
+                placeholder="Telefon Numarası (+90 5xx xxx xx xx)"
                 placeholderTextColor={colors.neutral[400]}
                 value={phone}
                 onChangeText={(text) => {
-                  setPhone(text);
+                  const formatted = formatPhoneNumber(text);
+                  setPhone(formatted);
                   if (phoneError) setPhoneError('');
                 }}
                 keyboardType="phone-pad"
+                maxLength={17} // +90 5xx xxx xx xx maksimum uzunluk
                 style={[styles.input, phoneError && styles.inputError]}
               />
               {phoneError ? (
@@ -455,7 +571,9 @@ export default function LoginScreen() {
                   setLoading(true);
                   setGeneralError('');
                   setOtpError('');
-                  await resendPhoneOTP(phone);
+                  // Telefon numarasını temizle (formatlamayı kaldır)
+                  const cleanPhone = cleanPhoneNumber(phone);
+                  await resendPhoneOTP(cleanPhone);
                   Alert.alert('Başarılı', 'Yeni doğrulama kodu telefon numaranıza gönderildi.');
                 } catch (error: any) {
                   setGeneralError(error.message || 'Kod gönderilemedi');

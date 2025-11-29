@@ -85,6 +85,17 @@ export default function TabLayout() {
       <Tabs.Screen
         name="messages"
         options={{
+          title: 'Mesajlar',
+          tabBarIcon: ({ color, size, focused }) => (
+            <View style={focused ? { backgroundColor: `${colors.primary[500]}33`, borderRadius: 9999, paddingHorizontal: 24, paddingVertical: 4 } : {}}>
+              <MessageCircle color={color} size={24} strokeWidth={focused ? 2.5 : 2} fill={focused ? color : 'transparent'} />
+            </View>
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="marketplace/[id]"
+        options={{
           href: null, // Hide from tab bar
         }}
       />

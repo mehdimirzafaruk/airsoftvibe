@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Modal, TextInput, TouchableOpacity, ScrollView, Image, Alert, Platform } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { X, Image as ImageIcon, Send, DollarSign, MapPin, Tag } from 'lucide-react-native';
@@ -11,11 +11,22 @@ interface CreateMarketplaceItemModalProps {
   onClose: () => void;
   onItemCreated: () => void;
   userId: string;
+  editItem?: {
+    id: string;
+    title: string;
+    description: string;
+    price: number;
+    category: string;
+    condition: string;
+    location: string;
+    images: string[];
+  } | null;
 }
 
 interface MediaFile {
   uri: string;
   type: 'image' | 'video';
+  isExisting?: boolean; // Mevcut fotoğraf mı yoksa yeni mi
 }
 
 const categories = [
@@ -35,11 +46,26 @@ const conditions = [
   { value: 'for_parts', label: 'Tamir Gerekli' },
 ];
 
+// Türkiye'nin 81 ili
+const turkishCities = [
+  'Adana', 'Adıyaman', 'Afyonkarahisar', 'Ağrı', 'Amasya', 'Ankara', 'Antalya', 'Artvin',
+  'Aydın', 'Balıkesir', 'Bilecik', 'Bingöl', 'Bitlis', 'Bolu', 'Burdur', 'Bursa',
+  'Çanakkale', 'Çankırı', 'Çorum', 'Denizli', 'Diyarbakır', 'Edirne', 'Elazığ', 'Erzincan',
+  'Erzurum', 'Eskişehir', 'Gaziantep', 'Giresun', 'Gümüşhane', 'Hakkari', 'Hatay', 'Isparta',
+  'İçel (Mersin)', 'İstanbul', 'İzmir', 'Kars', 'Kastamonu', 'Kayseri', 'Kırklareli', 'Kırşehir',
+  'Kocaeli', 'Konya', 'Kütahya', 'Malatya', 'Manisa', 'Kahramanmaraş', 'Mardin', 'Muğla',
+  'Muş', 'Nevşehir', 'Niğde', 'Ordu', 'Rize', 'Sakarya', 'Samsun', 'Siirt',
+  'Sinop', 'Sivas', 'Tekirdağ', 'Tokat', 'Trabzon', 'Tunceli', 'Şanlıurfa', 'Uşak',
+  'Van', 'Yozgat', 'Zonguldak', 'Aksaray', 'Bayburt', 'Karaman', 'Kırıkkale', 'Batman',
+  'Şırnak', 'Bartın', 'Ardahan', 'Iğdır', 'Yalova', 'Karabük', 'Kilis', 'Osmaniye', 'Düzce'
+];
+
 export default function CreateMarketplaceItemModal({ 
   visible, 
   onClose, 
   onItemCreated, 
-  userId 
+  userId,
+  editItem = null
 }: CreateMarketplaceItemModalProps) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -51,6 +77,35 @@ export default function CreateMarketplaceItemModal({
   const [posting, setPosting] = useState(false);
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
   const [showConditionPicker, setShowConditionPicker] = useState(false);
+  const [showLocationPicker, setShowLocationPicker] = useState(false);
+
+  // Edit modunda formu doldur
+  useEffect(() => {
+    if (editItem && visible) {
+      setTitle(editItem.title);
+      setDescription(editItem.description || '');
+      setPrice(editItem.price.toString());
+      setCategory(editItem.category);
+      setCondition(editItem.condition);
+      setLocation(editItem.location);
+      // Mevcut fotoğrafları yükle
+      const existingImages: MediaFile[] = (editItem.images || []).map(img => ({
+        uri: img,
+        type: 'image' as const,
+        isExisting: true
+      }));
+      setMediaFiles(existingImages);
+    } else if (!editItem && visible) {
+      // Yeni ilan için formu temizle
+      setTitle('');
+      setDescription('');
+      setPrice('');
+      setCategory('');
+      setCondition('');
+      setLocation('');
+      setMediaFiles([]);
+    }
+  }, [editItem, visible]);
 
   const requestPermissions = async () => {
     if (Platform.OS !== 'web') {
@@ -158,28 +213,57 @@ export default function CreateMarketplaceItemModal({
     try {
       const imageUrls: string[] = [];
 
-      // Medya dosyalarını yükle
+      // Medya dosyalarını işle
       for (const media of mediaFiles) {
-        const result = await uploadMedia(media.uri, userId, media.type);
-        imageUrls.push(result.url);
+        if (media.isExisting) {
+          // Mevcut fotoğraf, URL'yi direkt kullan
+          imageUrls.push(media.uri);
+        } else {
+          // Yeni fotoğraf, yükle
+          const result = await uploadMedia(media.uri, userId, media.type);
+          imageUrls.push(result.url);
+        }
       }
 
-      const { error } = await supabase
-        .from('marketplace_items')
-        .insert({
-          seller_id: userId,
-          title: title.trim(),
-          description: description.trim() || null,
-          price: Number(price),
-          currency: 'TL',
-          category: category,
-          condition: condition,
-          images: imageUrls,
-          location: location.trim(),
-          status: 'active',
-        });
+      if (editItem) {
+        // Güncelleme
+        const { error } = await supabase
+          .from('marketplace_items')
+          .update({
+            title: title.trim(),
+            description: description.trim() || null,
+            price: Number(price),
+            category: category,
+            condition: condition,
+            images: imageUrls,
+            location: location.trim(),
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', editItem.id)
+          .eq('seller_id', userId);
 
-      if (error) throw error;
+        if (error) throw error;
+        Alert.alert('Başarılı', 'İlan başarıyla güncellendi!');
+      } else {
+        // Yeni oluşturma
+        const { error } = await supabase
+          .from('marketplace_items')
+          .insert({
+            seller_id: userId,
+            title: title.trim(),
+            description: description.trim() || null,
+            price: Number(price),
+            currency: 'TL',
+            category: category,
+            condition: condition,
+            images: imageUrls,
+            location: location.trim(),
+            status: 'active',
+          });
+
+        if (error) throw error;
+        Alert.alert('Başarılı', 'İlan başarıyla oluşturuldu!');
+      }
 
       // Formu temizle
       setTitle('');
@@ -191,10 +275,9 @@ export default function CreateMarketplaceItemModal({
       setMediaFiles([]);
       onItemCreated();
       onClose();
-      Alert.alert('Başarılı', 'İlan başarıyla oluşturuldu!');
     } catch (error: any) {
-      console.error('Error creating marketplace item:', error);
-      Alert.alert('Hata', error.message || 'İlan oluşturulurken bir hata oluştu');
+      console.error('Error saving marketplace item:', error);
+      Alert.alert('Hata', error.message || 'İlan kaydedilirken bir hata oluştu');
     } finally {
       setPosting(false);
     }
@@ -205,7 +288,7 @@ export default function CreateMarketplaceItemModal({
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Yeni İlan</Text>
+            <Text style={styles.modalTitle}>{editItem ? 'İlanı Düzenle' : 'Yeni İlan'}</Text>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
               <X color={typographyColors.primary} size={24} />
             </TouchableOpacity>
@@ -250,17 +333,48 @@ export default function CreateMarketplaceItemModal({
                 </View>
 
                 <View style={styles.halfInput}>
-                  <Text style={styles.label}>Konum *</Text>
-                  <View style={styles.locationInputContainer}>
+                  <Text style={styles.label}>İl *</Text>
+                  <TouchableOpacity
+                    style={styles.pickerButton}
+                    onPress={() => {
+                      setShowCategoryPicker(false);
+                      setShowConditionPicker(false);
+                      setShowLocationPicker(!showLocationPicker);
+                    }}
+                  >
+                    <Text style={[styles.pickerText, !location && styles.placeholder]}>
+                      {location || 'İl Seçiniz'}
+                    </Text>
                     <MapPin color={colors.neutral[500]} size={20} />
-                    <TextInput
-                      style={[styles.input, styles.locationInput]}
-                      placeholder="Şehir"
-                      placeholderTextColor={colors.neutral[500]}
-                      value={location}
-                      onChangeText={setLocation}
-                    />
-                  </View>
+                  </TouchableOpacity>
+                  {showLocationPicker && (
+                    <View style={[styles.pickerOptions, styles.locationPickerOptions]}>
+                      <ScrollView style={styles.locationScrollView} nestedScrollEnabled>
+                        {turkishCities.map((city) => (
+                          <TouchableOpacity
+                            key={city}
+                            style={[
+                              styles.pickerOption,
+                              location === city && styles.pickerOptionSelected,
+                            ]}
+                            onPress={() => {
+                              setLocation(city);
+                              setShowLocationPicker(false);
+                            }}
+                          >
+                            <Text
+                              style={[
+                                styles.pickerOptionText,
+                                location === city && styles.pickerOptionTextSelected,
+                              ]}
+                            >
+                              {city}
+                            </Text>
+                          </TouchableOpacity>
+                        ))}
+                      </ScrollView>
+                    </View>
+                  )}
                 </View>
               </View>
 
@@ -379,7 +493,9 @@ export default function CreateMarketplaceItemModal({
               >
                 <Send color={colors.neutral[0]} size={20} />
                 <Text style={styles.submitButtonText}>
-                  {posting ? 'Oluşturuluyor...' : 'İlanı Yayınla'}
+                  {posting 
+                    ? (editItem ? 'Güncelleniyor...' : 'Oluşturuluyor...') 
+                    : (editItem ? 'Değişiklikleri Kaydet' : 'İlanı Yayınla')}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -513,6 +629,12 @@ const styles = StyleSheet.create({
     maxHeight: 200,
     overflow: 'hidden',
   },
+  locationPickerOptions: {
+    maxHeight: 300,
+  },
+  locationScrollView: {
+    maxHeight: 300,
+  },
   pickerOption: {
     padding: 12,
     borderBottomWidth: 1,
@@ -591,4 +713,5 @@ const styles = StyleSheet.create({
     color: colors.neutral[0],
   },
 });
+
 

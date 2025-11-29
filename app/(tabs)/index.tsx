@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl, Image, Alert, Platform } from 'react-native';
-import { Heart, MessageCircle as MessageCircleIcon, Bookmark, Send, Share, Search, Bell, MoreHorizontal } from 'lucide-react-native';
+import { Heart, MessageCircle as MessageCircleIcon, Bookmark, Send, Share, Search, Bell, MoreHorizontal, Edit, Trash2 } from 'lucide-react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useAuth } from '../../lib/auth-context';
 import { supabase } from '../../lib/supabase';
@@ -36,6 +36,22 @@ export default function HomeScreen() {
   const [createModalVisible, setCreateModalVisible] = useState(false);
   const [commentsModalVisible, setCommentsModalVisible] = useState(false);
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
+  const [editPost, setEditPost] = useState<Post | null>(null);
+  const [showPostMenu, setShowPostMenu] = useState<string | null>(null);
+
+  // Menü dışına tıklanınca kapat
+  useEffect(() => {
+    if (showPostMenu) {
+      const handleClickOutside = () => {
+        setShowPostMenu(null);
+      };
+      // Web için
+      if (Platform.OS === 'web' && typeof document !== 'undefined') {
+        document.addEventListener('click', handleClickOutside);
+        return () => document.removeEventListener('click', handleClickOutside);
+      }
+    }
+  }, [showPostMenu]);
 
   const fetchPosts = async () => {
     try {
@@ -178,6 +194,46 @@ export default function HomeScreen() {
     setCommentsModalVisible(true);
   };
 
+  const handleDeletePost = async (postId: string) => {
+    Alert.alert(
+      'Gönderiyi Sil',
+      'Bu gönderiyi silmek istediğinize emin misiniz?',
+      [
+        {
+          text: 'İptal',
+          style: 'cancel',
+        },
+        {
+          text: 'Sil',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const { error } = await supabase
+                .from('posts')
+                .delete()
+                .eq('id', postId)
+                .eq('user_id', user?.id);
+
+              if (error) throw error;
+              await fetchPosts();
+              Alert.alert('Başarılı', 'Gönderi silindi');
+            } catch (error) {
+              console.error('Error deleting post:', error);
+              Alert.alert('Hata', 'Gönderi silinirken bir hata oluştu');
+            }
+          },
+        },
+      ]
+    );
+    setShowPostMenu(null);
+  };
+
+  const handleEditPost = (post: Post) => {
+    setEditPost(post);
+    setCreateModalVisible(true);
+    setShowPostMenu(null);
+  };
+
   const getTimeAgo = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
@@ -216,9 +272,46 @@ export default function HomeScreen() {
             </Text>
           </View>
         </View>
-        <TouchableOpacity style={styles.moreButton}>
-          <MoreHorizontal color={typographyColors.secondary} size={20} />
-        </TouchableOpacity>
+        <View style={styles.moreButtonContainer}>
+          {user?.id === item.user_id && (
+            <TouchableOpacity
+              style={styles.moreButton}
+              onPress={(e) => {
+                e.stopPropagation();
+                setShowPostMenu(showPostMenu === item.id ? null : item.id);
+              }}
+            >
+              <MoreHorizontal color={typographyColors.secondary} size={20} />
+            </TouchableOpacity>
+          )}
+          {showPostMenu === item.id && user?.id === item.user_id && (
+            <>
+              {Platform.OS === 'web' && (
+                <TouchableOpacity
+                  style={styles.menuOverlay}
+                  onPress={() => setShowPostMenu(null)}
+                  activeOpacity={1}
+                />
+              )}
+              <View style={styles.postMenu}>
+                <TouchableOpacity
+                  style={styles.menuItem}
+                  onPress={() => handleEditPost(item)}
+                >
+                  <Edit color={typographyColors.primary} size={18} />
+                  <Text style={styles.menuItemText}>Düzenle</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.menuItem, styles.menuItemDanger]}
+                  onPress={() => handleDeletePost(item.id)}
+                >
+                  <Trash2 color={colors.status.error} size={18} />
+                  <Text style={[styles.menuItemText, styles.menuItemTextDanger]}>Sil</Text>
+                </TouchableOpacity>
+              </View>
+            </>
+          )}
+        </View>
       </View>
 
       {item.media_urls && item.media_urls.length > 0 && (
@@ -329,9 +422,21 @@ export default function HomeScreen() {
       {user?.id && (
         <CreatePostModal
           visible={createModalVisible}
-          onClose={() => setCreateModalVisible(false)}
-          onPostCreated={fetchPosts}
+          onClose={() => {
+            setCreateModalVisible(false);
+            setEditPost(null);
+          }}
+          onPostCreated={() => {
+            fetchPosts();
+            setEditPost(null);
+          }}
           userId={user.id}
+          editPost={editPost ? {
+            id: editPost.id,
+            content: editPost.content,
+            location: editPost.location,
+            media_urls: editPost.media_urls || [],
+          } : null}
         />
       )}
 
@@ -456,9 +561,56 @@ const styles = StyleSheet.create({
     color: typographyColors.secondary,
     marginTop: 2,
   },
+  moreButtonContainer: {
+    position: 'relative',
+    zIndex: 10,
+  },
   moreButton: {
     padding: 8,
     borderRadius: 20,
+  },
+  menuOverlay: {
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 999,
+  },
+  postMenu: {
+    position: 'absolute',
+    top: 40,
+    right: 0,
+    backgroundColor: colors.secondary[100],
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.secondary[200],
+    minWidth: 150,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 8,
+    zIndex: 1000,
+  },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    padding: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.secondary[200],
+  },
+  menuItemDanger: {
+    borderBottomWidth: 0,
+  },
+  menuItemText: {
+    fontSize: 16,
+    color: typographyColors.primary,
+    fontWeight: '500',
+  },
+  menuItemTextDanger: {
+    color: colors.status.error,
   },
   postImage: {
     width: '100%',

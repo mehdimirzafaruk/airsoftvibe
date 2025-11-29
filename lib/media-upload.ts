@@ -6,22 +6,65 @@ export interface UploadResult {
   path: string;
 }
 
+// MIME type'dan dosya uzantısını çıkar
+function getExtensionFromMimeType(mimeType: string): string {
+  const mimeToExt: { [key: string]: string } = {
+    'image/jpeg': 'jpg',
+    'image/jpg': 'jpg',
+    'image/png': 'png',
+    'image/gif': 'gif',
+    'image/webp': 'webp',
+    'video/mp4': 'mp4',
+    'video/quicktime': 'mov',
+    'audio/mpeg': 'mp3',
+    'audio/wav': 'wav',
+  };
+  return mimeToExt[mimeType.toLowerCase()] || 'jpg';
+}
+
+// URI'den dosya uzantısını çıkar
+function getFileExtension(uri: string): string {
+  // Data URI ise MIME type'dan uzantıyı çıkar
+  if (uri.startsWith('data:')) {
+    const mimeMatch = uri.match(/data:([^;]+)/);
+    if (mimeMatch && mimeMatch[1]) {
+      return getExtensionFromMimeType(mimeMatch[1]);
+    }
+    return 'jpg'; // Varsayılan
+  }
+  
+  // Normal URI ise dosya adından uzantıyı çıkar
+  const parts = uri.split('.');
+  if (parts.length > 1) {
+    const ext = parts.pop()?.split('?')[0]?.toLowerCase();
+    if (ext && ext.length <= 5) { // Geçerli uzantı kontrolü
+      return ext;
+    }
+  }
+  
+  return 'jpg'; // Varsayılan
+}
+
 export async function uploadMedia(
   uri: string,
   userId: string,
   type: 'image' | 'video' | 'audio'
 ): Promise<UploadResult> {
   try {
-    const fileExt = uri.split('.').pop()?.split('?')[0]?.toLowerCase() || 'jpg';
+    const fileExt = getFileExtension(uri);
     const fileName = `${Date.now()}.${fileExt}`;
     const filePath = `${userId}/${type}s/${fileName}`;
 
     let fileData: Blob | Uint8Array | File;
+    let mimeType: string;
 
     if (Platform.OS === 'web') {
       // Web platformu için
       if (uri.startsWith('data:')) {
         // Data URI ise (base64)
+        const mimeMatch = uri.match(/data:([^;]+)/);
+        mimeType = mimeMatch ? mimeMatch[1] : 'image/jpeg';
+        
         const base64Data = uri.split(',')[1];
         const binaryString = atob(base64Data);
         const bytes = new Uint8Array(binaryString.length);
@@ -33,10 +76,12 @@ export async function uploadMedia(
         // Blob URL ise
         const response = await fetch(uri);
         fileData = await response.blob();
+        mimeType = fileData.type || getMimeType(fileExt);
       } else if (uri.startsWith('http://') || uri.startsWith('https://')) {
         // HTTP URL ise
         const response = await fetch(uri);
         fileData = await response.blob();
+        mimeType = fileData.type || getMimeType(fileExt);
       } else {
         // Local file path (web'de genelde File objesi gelir)
         // Eğer File objesi direkt gelirse onu kullan
@@ -57,12 +102,13 @@ export async function uploadMedia(
         bytes[i] = binaryString.charCodeAt(i);
       }
       fileData = bytes;
+      mimeType = getMimeType(fileExt);
     }
 
     const { data, error } = await supabase.storage
       .from('media')
       .upload(filePath, fileData, {
-        contentType: getMimeType(fileExt),
+        contentType: mimeType || getMimeType(fileExt),
         upsert: false,
       });
 

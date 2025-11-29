@@ -274,10 +274,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       }
 
-      // Telefon numarası validasyonu
-      const phoneRegex = /^\+[1-9]\d{10,14}$/;
-      if (!phoneRegex.test(formattedPhone)) {
-        throw new Error('Geçerli bir telefon numarası girin (örn: +905551234567)');
+      // Türkiye telefon numarası validasyonu: +90 ile başlamalı ve 13 karakter olmalı (+90 + 10 rakam, 5 ile başlamalı)
+      if (!formattedPhone.startsWith('+90') || formattedPhone.length !== 13 || !/^\+90[5][0-9]{9}$/.test(formattedPhone)) {
+        throw new Error('Geçerli bir Türkiye telefon numarası girin (örn: +905527964729)');
       }
 
       const { error } = await supabase.auth.signInWithOtp({
@@ -315,6 +314,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } else {
           formattedPhone = '+' + formattedPhone;
         }
+      }
+
+      // Türkiye telefon numarası validasyonu
+      if (!formattedPhone.startsWith('+90') || formattedPhone.length !== 13 || !/^\+90[5][0-9]{9}$/.test(formattedPhone)) {
+        throw new Error('Geçerli bir Türkiye telefon numarası girin (örn: +905527964729)');
       }
 
       // OTP validasyonu

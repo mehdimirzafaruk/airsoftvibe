@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl, Image, ScrollView, Alert, Platform } from 'react-native';
-import { Plus, Search, Heart, MapPin, Tag, Bell, ShoppingCart, Settings } from 'lucide-react-native';
+import { useRouter } from 'expo-router';
+import { Plus, Search, Heart, MapPin, Tag, Bell, ShoppingCart, Settings, Edit } from 'lucide-react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useAuth } from '../../lib/auth-context';
 import { supabase } from '../../lib/supabase';
@@ -35,26 +36,28 @@ const categoryLabels: Record<string, string> = {
 };
 
 const conditionLabels: Record<string, string> = {
-  'yeni': 'Yeni',
-  'sifir_gibi': 'Sıfır Gibi',
-  'kullanilmis': 'Kullanılmış',
-  'tamir_gerekli': 'Tamir Gerekli',
+  'new': 'Yeni',
+  'like_new': 'Sıfır Gibi',
+  'used': 'Kullanılmış',
+  'for_parts': 'Tamir Gerekli',
 };
 
 const conditionColors: Record<string, string> = {
-  'yeni': colors.success[600],
-  'sifir_gibi': colors.success[400],
-  'kullanilmis': colors.warning[400],
-  'tamir_gerekli': colors.status.error,
+  'new': colors.success[600],
+  'like_new': colors.success[400],
+  'used': colors.warning[400],
+  'for_parts': colors.status.error,
 };
 
 export default function MarketplaceScreen() {
   const { user } = useAuth();
+  const router = useRouter();
   const [items, setItems] = useState<MarketplaceItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [createModalVisible, setCreateModalVisible] = useState(false);
+  const [editItem, setEditItem] = useState<MarketplaceItem | null>(null);
 
   useEffect(() => {
     fetchItems();
@@ -92,16 +95,40 @@ export default function MarketplaceScreen() {
     fetchItems();
   };
 
+  const handleEditItem = (item: MarketplaceItem, event?: any) => {
+    if (event) {
+      event.stopPropagation();
+    }
+    if (!user?.id || item.seller_id !== user.id) {
+      Alert.alert('Hata', 'Sadece kendi ilanlarınızı düzenleyebilirsiniz');
+      return;
+    }
+    setEditItem(item);
+    setCreateModalVisible(true);
+  };
+
+  const handleItemPress = (item: MarketplaceItem) => {
+    router.push({
+      pathname: '/(tabs)/marketplace/[id]',
+      params: { id: item.id },
+    });
+  };
+
   const renderItem = ({ item, index }: { item: MarketplaceItem; index: number }) => {
     const hasImage = item.images && item.images.length > 0;
     const imageUrl = hasImage ? item.images[0] : null;
+    const isOwner = user?.id === item.seller_id;
 
     return (
       <Animated.View
         entering={FadeInDown.duration(400).delay(index * 50)}
         style={styles.card}
       >
-        <TouchableOpacity style={styles.cardTouchable}>
+        <TouchableOpacity 
+          style={styles.cardTouchable}
+          onPress={() => handleItemPress(item)}
+          activeOpacity={0.7}
+        >
           {imageUrl ? (
             <Image
               source={{ uri: imageUrl }}
@@ -112,6 +139,18 @@ export default function MarketplaceScreen() {
             <View style={[styles.itemImage, styles.placeholderImage]}>
               <Tag color={colors.neutral[400]} size={48} strokeWidth={1.5} />
             </View>
+          )}
+
+          {isOwner && (
+            <TouchableOpacity
+              style={styles.editButton}
+              onPress={(e) => {
+                e.stopPropagation();
+                handleEditItem(item, e);
+              }}
+            >
+              <Edit color={colors.neutral[0]} size={16} />
+            </TouchableOpacity>
           )}
 
           <View style={styles.cardContent}>
@@ -244,9 +283,16 @@ export default function MarketplaceScreen() {
 
       <CreateMarketplaceItemModal
         visible={createModalVisible}
-        onClose={() => setCreateModalVisible(false)}
-        onItemCreated={fetchItems}
+        onClose={() => {
+          setCreateModalVisible(false);
+          setEditItem(null);
+        }}
+        onItemCreated={() => {
+          fetchItems();
+          setEditItem(null);
+        }}
         userId={user?.id || ''}
+        editItem={editItem}
       />
     </View>
   );
@@ -447,6 +493,15 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: colors.primary[600],
     fontWeight: '600',
+  },
+  editButton: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    borderRadius: 20,
+    padding: 8,
+    zIndex: 10,
   },
   emptyContainer: {
     padding: 60,
