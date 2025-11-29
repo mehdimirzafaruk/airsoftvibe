@@ -1,0 +1,18 @@
+{
+  "status": "commited",
+  "type": "frontend",
+  "scope": "codebase",
+  "localEndpoint": "http://localhost:8081",
+  "loginUser": "mehdimirzafarukparmaksiz@gmail.com",
+  "loginPassword": "92Mirza1",
+  "executionArgs": {
+    "projectName": "son sürüm-0.4",
+    "projectPath": "C:\\Users\\mehdi\\OneDrive\\Masaüstü\\Airsoft denemeleri\\son sürüm-0.4",
+    "testIds": [],
+    "additionalInstruction": "Test execution için: Lütfen login işlemlerinde daha fazla bekleme süresi tanıyın ve Supabase auth işlemlerinin tamamlanmasını bekleyin.",
+    "envs": {
+      "API_KEY": "sk-user-6H4PRXffv6Hr0T237Y8yeUBEuYSj8CqFhMs-P2BzyeCafz7tKgFjuk8BQnHHsxxbyDmp1IN8hqA30Hi5lhtAudc5_A2XyBDfPl5umZh9wbM3MJgDLIkd4iubqM99AzG6mwo"
+    }
+  },
+  "proxy": "http://c7f6f18e-de7b-486c-ab4a-4e0863d53c31:Lfn8ZebGPC3qg7z5t8yQyVCGVaVUtIIh@tun.testsprite.com:8080"
+}

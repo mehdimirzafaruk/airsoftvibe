@@ -1,0 +1,402 @@
+{
+  "tech_stack": [
+    "TypeScript",
+    "React Native",
+    "Expo",
+    "Supabase",
+    "PostgreSQL",
+    "React Context API",
+    "Expo Router"
+  ],
+  "features": [
+    {
+      "name": "Authentication",
+      "description": "Kullanıcı kayıt, giriş, çıkış ve şifre sıfırlama işlemleri. Supabase Auth kullanılarak gerçekleştirilir.",
+      "files": [
+        "app/auth/login.tsx",
+        "lib/auth-context.tsx",
+        "lib/supabase.ts"
+      ],
+      "api_doc": {
+        "openapi": "3.0.0",
+        "info": {
+          "title": "Authentication API",
+          "version": "1.0.0"
+        },
+        "paths": {
+          "/auth/signup": {
+            "post": {
+              "summary": "Kullanıcı kaydı",
+              "requestBody": {
+                "required": true,
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "type": "object",
+                      "properties": {
+                        "email": { "type": "string", "format": "email" },
+                        "password": { "type": "string", "minLength": 6 },
+                        "username": { "type": "string" },
+                        "full_name": { "type": "string" }
+                      },
+                      "required": ["email", "password", "username"]
+                    }
+                  }
+                }
+              },
+              "responses": {
+                "200": { "description": "Kayıt başarılı" },
+                "400": { "description": "Hatalı istek" }
+              }
+            }
+          },
+          "/auth/signin": {
+            "post": {
+              "summary": "Kullanıcı girişi",
+              "requestBody": {
+                "required": true,
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "type": "object",
+                      "properties": {
+                        "email": { "type": "string", "format": "email" },
+                        "password": { "type": "string" }
+                      },
+                      "required": ["email", "password"]
+                    }
+                  }
+                }
+              },
+              "responses": {
+                "200": { "description": "Giriş başarılı" },
+                "401": { "description": "Yetkisiz erişim" }
+              }
+            }
+          },
+          "/auth/signout": {
+            "post": {
+              "summary": "Kullanıcı çıkışı",
+              "responses": {
+                "200": { "description": "Çıkış başarılı" }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "Posts Feed",
+      "description": "Gönderileri listeleme, beğenme, yorum yapma, kaydetme ve gönderi oluşturma özellikleri.",
+      "files": [
+        "app/(tabs)/index.tsx",
+        "components/CreatePostModal.tsx",
+        "components/CommentsModal.tsx"
+      ],
+      "api_doc": {
+        "openapi": "3.0.0",
+        "info": {
+          "title": "Posts API",
+          "version": "1.0.0"
+        },
+        "paths": {
+          "/posts": {
+            "get": {
+              "summary": "Gönderileri listele",
+              "responses": {
+                "200": {
+                  "description": "Gönderiler listesi",
+                  "content": {
+                    "application/json": {
+                      "schema": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "id": { "type": "string" },
+                            "content": { "type": "string" },
+                            "media_urls": { "type": "array", "items": { "type": "string" } },
+                            "user_id": { "type": "string" },
+                            "created_at": { "type": "string" }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "post": {
+              "summary": "Yeni gönderi oluştur",
+              "requestBody": {
+                "required": true,
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "type": "object",
+                      "properties": {
+                        "content": { "type": "string" },
+                        "media_urls": { "type": "array", "items": { "type": "string" } },
+                        "location": { "type": "string" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "/posts/{postId}/like": {
+            "post": {
+              "summary": "Gönderiyi beğen",
+              "parameters": [
+                { "name": "postId", "in": "path", "required": true, "schema": { "type": "string" } }
+              ]
+            },
+            "delete": {
+              "summary": "Beğeniyi kaldır",
+              "parameters": [
+                { "name": "postId", "in": "path", "required": true, "schema": { "type": "string" } }
+              ]
+            }
+          },
+          "/posts/{postId}/comments": {
+            "get": {
+              "summary": "Gönderi yorumlarını getir",
+              "parameters": [
+                { "name": "postId", "in": "path", "required": true, "schema": { "type": "string" } }
+              ]
+            },
+            "post": {
+              "summary": "Yorum ekle",
+              "parameters": [
+                { "name": "postId", "in": "path", "required": true, "schema": { "type": "string" } }
+              ],
+              "requestBody": {
+                "required": true,
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "type": "object",
+                      "properties": {
+                        "content": { "type": "string" }
+                      },
+                      "required": ["content"]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "Profile Management",
+      "description": "Kullanıcı profil bilgilerini görüntüleme, düzenleme, XP sistemi ve istatistikler.",
+      "files": [
+        "app/(tabs)/profile.tsx"
+      ],
+      "api_doc": {
+        "openapi": "3.0.0",
+        "info": {
+          "title": "Profile API",
+          "version": "1.0.0"
+        },
+        "paths": {
+          "/profiles/{userId}": {
+            "get": {
+              "summary": "Kullanıcı profilini getir",
+              "parameters": [
+                { "name": "userId", "in": "path", "required": true, "schema": { "type": "string" } }
+              ]
+            },
+            "put": {
+              "summary": "Profili güncelle",
+              "parameters": [
+                { "name": "userId", "in": "path", "required": true, "schema": { "type": "string" } }
+              ],
+              "requestBody": {
+                "required": true,
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "type": "object",
+                      "properties": {
+                        "full_name": { "type": "string" },
+                        "bio": { "type": "string" },
+                        "team_info": { "type": "string" },
+                        "favorite_equipment": { "type": "string" },
+                        "avatar_url": { "type": "string" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "/profiles/{userId}/stats": {
+            "get": {
+              "summary": "Kullanıcı istatistiklerini getir",
+              "parameters": [
+                { "name": "userId", "in": "path", "required": true, "schema": { "type": "string" } }
+              ]
+            }
+          },
+          "/profiles/{userId}/xp": {
+            "get": {
+              "summary": "Kullanıcı XP bilgilerini getir",
+              "parameters": [
+                { "name": "userId", "in": "path", "required": true, "schema": { "type": "string" } }
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "Events Management",
+      "description": "Etkinlikleri görüntüleme, etkinliklere katılma/ayrılma işlemleri.",
+      "files": [
+        "app/(tabs)/events.tsx"
+      ],
+      "api_doc": {
+        "openapi": "3.0.0",
+        "info": {
+          "title": "Events API",
+          "version": "1.0.0"
+        },
+        "paths": {
+          "/events": {
+            "get": {
+              "summary": "Etkinlikleri listele",
+              "parameters": [
+                { "name": "filter", "in": "query", "schema": { "type": "string", "enum": ["upcoming", "past"] } }
+              ]
+            }
+          },
+          "/events/{eventId}/participate": {
+            "post": {
+              "summary": "Etkinliğe katıl",
+              "parameters": [
+                { "name": "eventId", "in": "path", "required": true, "schema": { "type": "string" } }
+              ]
+            },
+            "delete": {
+              "summary": "Etkinlikten ayrıl",
+              "parameters": [
+                { "name": "eventId", "in": "path", "required": true, "schema": { "type": "string" } }
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "Marketplace",
+      "description": "Pazar yeri ilanlarını görüntüleme, kategori filtreleme özellikleri.",
+      "files": [
+        "app/(tabs)/marketplace.tsx"
+      ],
+      "api_doc": {
+        "openapi": "3.0.0",
+        "info": {
+          "title": "Marketplace API",
+          "version": "1.0.0"
+        },
+        "paths": {
+          "/marketplace/items": {
+            "get": {
+              "summary": "İlanları listele",
+              "parameters": [
+                { "name": "category", "in": "query", "schema": { "type": "string" } }
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "Messaging",
+      "description": "Birebir mesajlaşma ve grup sohbetleri görüntüleme.",
+      "files": [
+        "app/(tabs)/messages.tsx"
+      ],
+      "api_doc": {
+        "openapi": "3.0.0",
+        "info": {
+          "title": "Messaging API",
+          "version": "1.0.0"
+        },
+        "paths": {
+          "/messages/conversations": {
+            "get": {
+              "summary": "Konuşmaları listele",
+              "parameters": [
+                { "name": "type", "in": "query", "schema": { "type": "string", "enum": ["dm", "groups"] } }
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "Admin Panel",
+      "description": "Admin ve moderatörler için içerik moderasyonu, rapor inceleme ve gönderi silme.",
+      "files": [
+        "app/(tabs)/admin.tsx"
+      ],
+      "api_doc": {
+        "openapi": "3.0.0",
+        "info": {
+          "title": "Admin API",
+          "version": "1.0.0"
+        },
+        "paths": {
+          "/admin/reports": {
+            "get": {
+              "summary": "Raporları listele",
+              "responses": {
+                "200": {
+                  "description": "Rapor listesi",
+                  "content": {
+                    "application/json": {
+                      "schema": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "id": { "type": "string" },
+                            "reason": { "type": "string" },
+                            "status": { "type": "string" },
+                            "post": { "type": "object" }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "/admin/reports/{reportId}/dismiss": {
+            "post": {
+              "summary": "Raporu reddet",
+              "parameters": [
+                { "name": "reportId", "in": "path", "required": true, "schema": { "type": "string" } }
+              ]
+            }
+          },
+          "/admin/posts/{postId}": {
+            "delete": {
+              "summary": "Gönderiyi sil",
+              "parameters": [
+                { "name": "postId", "in": "path", "required": true, "schema": { "type": "string" } }
+              ]
+            }
+          }
+        }
+      }
+    }
+  ]
+}
+

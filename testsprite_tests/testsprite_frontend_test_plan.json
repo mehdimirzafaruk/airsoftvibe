@@ -1,0 +1,490 @@
+[
+  {
+    "id": "TC001",
+    "title": "User Registration with Valid Data",
+    "description": "Verify that a new user can successfully register using a valid email, password, username, and optional full name.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to registration page"
+      },
+      {
+        "type": "action",
+        "description": "Enter valid email, password (min 6 chars), username, and full name"
+      },
+      {
+        "type": "action",
+        "description": "Submit registration form"
+      },
+      {
+        "type": "assertion",
+        "description": "Registration completes successfully and user is prompted to verify email or redirected to login"
+      }
+    ]
+  },
+  {
+    "id": "TC002",
+    "title": "User Registration with Invalid Email Format",
+    "description": "Verify registration fails when an invalid email format is submitted.",
+    "category": "error handling",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to registration page"
+      },
+      {
+        "type": "action",
+        "description": "Enter invalid email, valid password, and username"
+      },
+      {
+        "type": "action",
+        "description": "Submit registration form"
+      },
+      {
+        "type": "assertion",
+        "description": "Error message about invalid email format is displayed and registration is blocked"
+      }
+    ]
+  },
+  {
+    "id": "TC003",
+    "title": "User Login with Valid Credentials",
+    "description": "Validate that a registered user can login with correct email and password.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to login page"
+      },
+      {
+        "type": "action",
+        "description": "Enter registered email and valid password"
+      },
+      {
+        "type": "action",
+        "description": "Submit login form"
+      },
+      {
+        "type": "assertion",
+        "description": "User is logged in successfully and directed to main feed"
+      }
+    ]
+  },
+  {
+    "id": "TC004",
+    "title": "User Login with Incorrect Password",
+    "description": "Verify login fails with wrong password returning an unauthorized error.",
+    "category": "error handling",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to login page"
+      },
+      {
+        "type": "action",
+        "description": "Enter valid email and incorrect password"
+      },
+      {
+        "type": "action",
+        "description": "Submit login form"
+      },
+      {
+        "type": "assertion",
+        "description": "Login is rejected with an unauthorized message"
+      }
+    ]
+  },
+  {
+    "id": "TC005",
+    "title": "Password Reset with Registered Email",
+    "description": "Verify password reset process works when requesting reset with registered email.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to password reset page"
+      },
+      {
+        "type": "action",
+        "description": "Enter registered email and submit"
+      },
+      {
+        "type": "assertion",
+        "description": "Password reset email is sent and user receives the reset instructions"
+      }
+    ]
+  },
+  {
+    "id": "TC006",
+    "title": "Create Post with Text Content Only",
+    "description": "Validate that user can create a new post with just text content.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to post creation modal"
+      },
+      {
+        "type": "action",
+        "description": "Enter valid text content without media or location"
+      },
+      {
+        "type": "action",
+        "description": "Submit the post"
+      },
+      {
+        "type": "assertion",
+        "description": "Post is successfully created and visible in the feed"
+      }
+    ]
+  },
+  {
+    "id": "TC007",
+    "title": "Create Post with Multiple Media Attachments and Location",
+    "description": "Verify creating a post with multiple media URLs and location metadata works correctly.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Open post creation modal"
+      },
+      {
+        "type": "action",
+        "description": "Add text content, multiple media URLs, and set location"
+      },
+      {
+        "type": "action",
+        "description": "Submit the post"
+      },
+      {
+        "type": "assertion",
+        "description": "Post with media and location is displayed properly in the feed with all attachments"
+      }
+    ]
+  },
+  {
+    "id": "TC008",
+    "title": "Like and Unlike a Post",
+    "description": "Verify that a user can like a post and then remove the like.",
+    "category": "functional",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Locate a post in the feed"
+      },
+      {
+        "type": "action",
+        "description": "Click like button on the post"
+      },
+      {
+        "type": "assertion",
+        "description": "Like count is incremented and UI updates accordingly"
+      },
+      {
+        "type": "action",
+        "description": "Click like button again to unlike"
+      },
+      {
+        "type": "assertion",
+        "description": "Like is removed and UI updates accordingly"
+      }
+    ]
+  },
+  {
+    "id": "TC009",
+    "title": "Add Comment with Valid Content to a Post",
+    "description": "Confirm user can add a text comment to a post successfully.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Open comments modal on a post"
+      },
+      {
+        "type": "action",
+        "description": "Enter valid comment text content"
+      },
+      {
+        "type": "action",
+        "description": "Submit comment"
+      },
+      {
+        "type": "assertion",
+        "description": "Comment appears under the post and is associated with correct postId"
+      }
+    ]
+  },
+  {
+    "id": "TC010",
+    "title": "Fail to Add Empty Comment",
+    "description": "Verify that submitting an empty comment is blocked and user is notified appropriately.",
+    "category": "error handling",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Open comments modal on a post"
+      },
+      {
+        "type": "action",
+        "description": "Attempt to submit an empty comment"
+      },
+      {
+        "type": "assertion",
+        "description": "Submission is blocked and an error message about empty content is shown"
+      }
+    ]
+  },
+  {
+    "id": "TC011",
+    "title": "Profile Information Retrieval",
+    "description": "Check that a user profile can be fetched and displays correct full name, bio, team info, favorite equipment, and avatar.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Request profile data for logged-in user"
+      },
+      {
+        "type": "assertion",
+        "description": "Profile information is returned and displayed accurately"
+      }
+    ]
+  },
+  {
+    "id": "TC012",
+    "title": "Update Profile Information Successfully",
+    "description": "Verify that user can update their profile fields and changes are saved and reflected.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to profile edit screen"
+      },
+      {
+        "type": "action",
+        "description": "Change full name, bio, team info, favorite equipment, and avatar URL"
+      },
+      {
+        "type": "action",
+        "description": "Submit profile updates"
+      },
+      {
+        "type": "assertion",
+        "description": "Updates persist and profile screen shows new information"
+      }
+    ]
+  },
+  {
+    "id": "TC013",
+    "title": "Check User XP and Rank Display",
+    "description": "Ensure XP and rank information can be retrieved and displayed correctly on user profile.",
+    "category": "functional",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Request user XP and rank data"
+      },
+      {
+        "type": "assertion",
+        "description": "Returned XP and rank match test data and are displayed clearly"
+      }
+    ]
+  },
+  {
+    "id": "TC014",
+    "title": "List Upcoming and Past Events",
+    "description": "Verify events list can be filtered by upcoming and past events and displayed accordingly.",
+    "category": "functional",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Request events with filter 'upcoming'"
+      },
+      {
+        "type": "assertion",
+        "description": "Only upcoming events are listed with correct details"
+      },
+      {
+        "type": "action",
+        "description": "Request events with filter 'past'"
+      },
+      {
+        "type": "assertion",
+        "description": "Only past events are listed correctly"
+      }
+    ]
+  },
+  {
+    "id": "TC015",
+    "title": "Participate and Withdraw from an Event",
+    "description": "Verify a user can join an event and subsequently withdraw their participation successfully.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Send request to participate in an event"
+      },
+      {
+        "type": "assertion",
+        "description": "User's participation is added and event participant count updates"
+      },
+      {
+        "type": "action",
+        "description": "Send request to withdraw from the event"
+      },
+      {
+        "type": "assertion",
+        "description": "User is removed from participants list and count updates"
+      }
+    ]
+  },
+  {
+    "id": "TC016",
+    "title": "Messaging: List Direct and Group Conversations",
+    "description": "Check that user can retrieve lists of direct messages and group chats distinctly.",
+    "category": "functional",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Request message conversations filtered by type 'dm'"
+      },
+      {
+        "type": "assertion",
+        "description": "Only direct message conversations are returned"
+      },
+      {
+        "type": "action",
+        "description": "Request message conversations filtered by type 'groups'"
+      },
+      {
+        "type": "assertion",
+        "description": "Only group conversations are listed"
+      }
+    ]
+  },
+  {
+    "id": "TC017",
+    "title": "Admin Panel: View and Manage Reports",
+    "description": "Validate admins can view reports, dismiss inappropriate reports, and delete posts with audit logging.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Login as admin or moderator"
+      },
+      {
+        "type": "action",
+        "description": "Access admin reports listing page"
+      },
+      {
+        "type": "assertion",
+        "description": "List of reports is displayed correctly with relevant information"
+      },
+      {
+        "type": "action",
+        "description": "Dismiss a chosen report"
+      },
+      {
+        "type": "assertion",
+        "description": "Report status updates accordingly and cannot be acted on again"
+      },
+      {
+        "type": "action",
+        "description": "Delete a post reported for inappropriate content"
+      },
+      {
+        "type": "assertion",
+        "description": "Post is removed from feed and action is logged in audit logs"
+      }
+    ]
+  },
+  {
+    "id": "TC018",
+    "title": "Role-Based Access Control Enforcement",
+    "description": "Ensure that users can only access and manipulate data according to their permissions with RLS applied.",
+    "category": "security",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Attempt to access another user's private profile data"
+      },
+      {
+        "type": "assertion",
+        "description": "Access is denied and proper error is returned"
+      },
+      {
+        "type": "action",
+        "description": "Attempt to delete a post as a non-admin user"
+      },
+      {
+        "type": "assertion",
+        "description": "Deletion is rejected due to lack of permissions"
+      }
+    ]
+  },
+  {
+    "id": "TC019",
+    "title": "Verify TLS Encryption and Password Hashing",
+    "description": "Confirm all client-server communications use HTTPS/TLS and passwords are stored hashed.",
+    "category": "security",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Inspect network traffic during registration and login"
+      },
+      {
+        "type": "assertion",
+        "description": "All traffic is encrypted over HTTPS/TLS"
+      },
+      {
+        "type": "action",
+        "description": "Review stored password hashes and verify they are not stored in plain text"
+      },
+      {
+        "type": "assertion",
+        "description": "Passwords in the database are securely hashed"
+      }
+    ]
+  },
+  {
+    "id": "TC020",
+    "title": "UI Theme Consistency and Accessibility on Multiple Devices",
+    "description": "Verify that the red-black military style theme with high contrast is consistent and accessible across devices and screen sizes.",
+    "category": "ui",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Load the app on devices of different screen sizes and OS versions"
+      },
+      {
+        "type": "assertion",
+        "description": "Theme colors, fonts, and contrast conform to design specifications"
+      },
+      {
+        "type": "assertion",
+        "description": "UI elements remain usable and accessible including in dark theme mode"
+      }
+    ]
+  }
+]
